@@ -3,19 +3,6 @@ import time
 import datetime
 import pandas as pd
 
-def closeModalDialog(driver):
-    modalContent= driver.find_element_by_class_name("modal-content")
-    button= modalContent.find_element_by_class_name("close")
-    button.click()
-    print(" ")
-    print("--------------------------------------------------")
-    print("Modal dialog closed")
-    print("--------------------------------------------------")
-
-def loadMore(driver):
-    loadMore= driver.find_element_by_class_name("btn.btn-primary.btn-outline")
-    loadMore.click()
-
 def openArticle(driver,article):
     link= article.get_attribute('href')
     driver.execute_script("window.open('');") 
@@ -48,13 +35,22 @@ def scrapArticle(driver, startTime):
         print("Time Elapsed: " + str((datetime.datetime.now())-startTime))
         print("--------------------------------------------------")
         article=[title,link,date,text]
-    return(article)
-    
+    return(article)       
 
-def loopSection(driver, section, dataframe, startTime):
-    articles= section.find_elements_by_class_name("story-card  ")
+def loopPage(driver,dataframe,startTime):
+    articles= driver.find_elements_by_class_name("story-card.story-card-white")
     for i in articles:
-        openArticle(driver, i)
+        while True:
+            try:
+                openArticle(driver,i)
+                break
+            except:
+                print(" ")
+                print("-----------------------------------")
+                print("Error while oppening article")
+                print("Trying to reopen article")
+                print("-----------------------------------")
+                closeArticle(driver)
         while True:
             try:
                 article= scrapArticle(driver, startTime)
@@ -71,7 +67,8 @@ def loopSection(driver, section, dataframe, startTime):
             dataframe= dataframe.append({"Title":article[0],"Link":article[1],"Date":article[2]
                                          ,"Text":article[3]},ignore_index=True)
         closeArticle(driver)
-    return(dataframe)        
+    return(dataframe)
+    
 
 def showProgress(startTime, page, dataframe):
     print(" ")
@@ -83,47 +80,36 @@ def showProgress(startTime, page, dataframe):
     print("Last Article: " + dataframe.iloc[len(dataframe)-1]["Title"])
     print("-----------------------------------")
 
+
 PATH= "C:\Program Files (x86)\chromedriver.exe"
 driver= webdriver.Chrome(PATH)
-newsPage="https://vegnews.com/news" 
-
-driver.get(newsPage)
 
 df_Articles= pd.DataFrame(columns=["Title","Link","Date","Text"])
 page=1
 startTime= datetime.datetime.now()
 
-time.sleep(3)
-loadMore(driver)
-
-initialSections= driver.find_elements_by_class_name("story-cards-container")
-section=1
-for i in initialSections:
-    df_Articles= loopSection(driver, i,df_Articles, startTime)
-    print(" ")
-    print("--------------------------------------------------")
-    print("Initial Section " + str(section)+ " completed")
-    print("Time Elapsed: " + str((datetime.datetime.now())-startTime))
-    print("--------------------------------------------------")
-    section+=1
-    try:
-        closeModalDialog(driver)
-    except:
-        pass
-    
-page=1
 while True:
-    loadMore(driver)
-    time.sleep(5)
-    page+=1
-    print(" ")
-    print("--------------------------------------------------")
-    print("Page " + str(page)+ " loaded")
-    print("Time Elapsed: " + str((datetime.datetime.now())-startTime))
-    print("--------------------------------------------------")
-    section= (driver.find_elements_by_class_name("story-cards-container"))[-1]
-    df_Articles= loopSection(driver, section, df_Articles, startTime)
-    showProgress(startTime, page, df_Articles)
+    newsPage="https://vegnews.com/news/page/" + str(page) 
+    driver.get(newsPage)
+    try:
+        articles= driver.find_element_by_class_name("story-card.story-card-white")
+    except:
+        print(" ")
+        print("-----------------------------------")
+        timeElapsed= (datetime.datetime.now())-startTime
+        print("Last Paged readed")
+        print("Time elapsed: " +str(timeElapsed))
+        print("Number of articles: " + str(len(df_Articles)))
+        print("Last Article: " + df_Articles.iloc[len(df_Articles)-1]["Title"])
+        print("-----------------------------------")
+        break
+    else:
+        time.sleep(3)
+        df_Articles= loopPage(driver, df_Articles, startTime)   
+        showProgress(startTime, page, df_Articles)
+        page+=1
+
+
     
 
 
