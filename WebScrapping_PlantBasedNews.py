@@ -64,9 +64,12 @@ def showProgress(startTime, page, dataframe):
     print("Last Article: " + dataframe.iloc[len(dataframe)-1]["Title"])
     print("-----------------------------------")
     
-def writeCSV(dataframe):
+def fixDate(dataframe):
     dataframe["Date"]= pd.to_datetime(dataframe["Date"],format="%Y-%m-%dT%H:%M")
     dataframe["Date"]= dataframe["Date"].apply(lambda x: x.strftime('%m/%d/%Y'))
+    return(dataframe)
+
+def writeCSV(dataframe):
     dataframe.to_csv('articles_PlantBasedNews.csv',index=False, encoding="utf-8-sig")
     
 def scrapAll():
@@ -88,5 +91,6 @@ def scrapAll():
             page+=1
         except:
             break
+    df_Articles= fixDate(df_Articles)
     writeCSV(df_Articles)
             

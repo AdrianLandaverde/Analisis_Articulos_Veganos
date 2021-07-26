@@ -89,29 +89,93 @@ def showProgress(startTime, page, dataframe):
     print("Last Article: " + dataframe.iloc[len(dataframe)-1]["Title"])
     print("-----------------------------------")
     
+def fixDate(dataframe):
+    dataframe["Date"]=pd.to_datetime(dataframe["Date"])
+    dataframe["Date"]= dataframe["Date"].apply(lambda x: x.strftime('%m/%d/%Y'))
+    return(dataframe)
 
-PATH= "C:\Program Files (x86)\chromedriver.exe"
-driver= webdriver.Chrome(PATH)
-newsPage="https://vegconomist.com/all-news/"
+def writeCSV(dataframe):
+    dataframe.to_csv('articles_Vegconomist.csv',index=False, encoding="utf-8-sig")
+    
+def srcapAll():
+    PATH= "C:\Program Files (x86)\chromedriver.exe"
+    driver= webdriver.Chrome(PATH)
+    newsPage="https://vegconomist.com/all-news/"
+    
+    driver.get(newsPage)
+    
+    df_Articles= pd.DataFrame(columns=["Title","Link","Date","Text"])
+    page=1
+    startTime= datetime.datetime.now()
+    while True:
+        time.sleep(3)
+        df_Articles= loopArticles(driver, df_Articles)
+        showProgress(startTime, page, df_Articles)
+        try:
+            nextPage(driver)
+            page+=1
+        except:
+            print(" ")
+            print("-----------------------------------")
+            print("Last Page Readed")
+            print("Pages Readed:" + str(page))
+            print("Time Elapsed: " + str((datetime.datetime.now())-startTime))
+            print("-----------------------------------")
+            break
+    df_Articles= fixDate(df_Articles)
+    writeCSV(df_Articles)
+    
+    
+def lastArticleReached(dataframe, lastLink):
+    df_link=dataframe.loc[dataframe["Link"]==lastLink]
+    if(len(df_link)!=0):
+        return([True,list(df_link.index)[0]])
+    else:
+        return([False])
+    
+        
+def updateArticles(): 
+    df_OldArticles= pd.read_csv("articles_Vegconomist.csv")
+    lastLink= df_OldArticles.iloc[0]["Link"]
+    PATH= "C:\Program Files (x86)\chromedriver.exe"
+    driver= webdriver.Chrome(PATH)
+    newsPage="https://vegconomist.com/all-news/"
+    
+    driver.get(newsPage)
+    
+    df_NewArticles= pd.DataFrame(columns=["Title","Link","Date","Text"])
+    page=1
+    startTime= datetime.datetime.now()
+    while True:
+        time.sleep(3)
+        df_NewArticles= loopArticles(driver, df_NewArticles)
+        showProgress(startTime, page, df_NewArticles)
+        checkLink= lastArticleReached(df_NewArticles, lastLink)
+        if(checkLink[0]==True):
+            nLink= checkLink[1]
+            if(nLink==0):
+                print("-----------------------------------")
+                print("There aren't new articles")
+                print("-----------------------------------")
+                df_NewArticles= df_NewArticles.iloc[0:0]
+                df_Articles= df_OldArticles
+            else:
+                df_NewArticles= df_NewArticles.iloc[:nLink]
+                df_NewArticles= fixDate(df_NewArticles)
+                df_Articles= pd.concat(df_NewArticles,df_OldArticles)
+                print("-----------------------------------")
+                print("Articles uptaded")
+                writeCSV(df_Articles)
+                print("CSV file updated")
+                print("-----------------------------------")
+            break
+        else:
+            nextPage(driver)
+            page+=1
 
-driver.get(newsPage)
 
-df_Articles= pd.DataFrame(columns=["Title","Link","Date","Text"])
-page=1
-startTime= datetime.datetime.now()
-while True:
-    time.sleep(3)
-    df_Articles= loopArticles(driver, df_Articles)
-    showProgress(startTime, page, df_Articles)
-    try:
-        nextPage(driver)
-        page+=1
-    except:
-        print(" ")
-        print("-----------------------------------")
-        print("Last Page Readed")
-        print("Pages Readed:" + str(page))
-        print("Time Elapsed: " + str((datetime.datetime.now())-startTime))
-        print("-----------------------------------")
-        break
+
+
+    
+
             
