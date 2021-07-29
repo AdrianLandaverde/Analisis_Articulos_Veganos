@@ -51,18 +51,27 @@ def loopPage(driver,dataframe,startTime):
                 print("Trying to reopen article")
                 print("-----------------------------------")
                 closeArticle(driver)
-        while True:
+        
+        try:
+            article= scrapArticle(driver, startTime)
+        except:
+            print(" ")
+            print("-----------------------------------")
+            print("Error while scrapping article")
+            print("Trying to refresh article")
+            print("-----------------------------------")
+            driver.refresh()
+            time.sleep(10)
             try:
                 article= scrapArticle(driver, startTime)
-                break
             except:
                 print(" ")
                 print("-----------------------------------")
-                print("Error while scrapping article")
-                print("Trying to refresh article")
+                print("Error while scrapping article again")
+                print("article skipped")
                 print("-----------------------------------")
-                driver.refresh()
-                time.sleep(10)
+                article=[]
+                    
         if(len(article)!=0):
             dataframe= dataframe.append({"Title":article[0],"Link":article[1],"Date":article[2]
                                          ,"Text":article[3]},ignore_index=True)
@@ -85,7 +94,7 @@ PATH= "C:\Program Files (x86)\chromedriver.exe"
 driver= webdriver.Chrome(PATH)
 
 df_Articles= pd.DataFrame(columns=["Title","Link","Date","Text"])
-page=1
+page=412
 startTime= datetime.datetime.now()
 
 while True:
